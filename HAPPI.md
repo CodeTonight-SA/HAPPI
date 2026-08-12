@@ -132,6 +132,36 @@ of (envelope JSON + concatenated event NDJSON). Wire shape:
 | `cid`            | no       | IPFS CID if pinned; `null` otherwise |
 | `model_versions` | yes      | List of model identifiers consulted (audit chain) |
 | `block_anchor`   | no       | On-chain block reference if anchored |
+| `sig`            | no       | Signature over `sha256`. Absent means unsigned — see below |
+
+`sig` shape (optional, additive; a receipt without it is unsigned, not invalid):
+
+| Field    | Required | Notes |
+|----------|----------|-------|
+| `scheme` | yes      | Signature suite. `ed25519+ml-dsa-65` is the dual-limb suite (classical + post-quantum), whose limb keys are `ed25519` and `mldsa65`. `hmac-sha256` is a shared-secret MAC, not a signature — see the caveat below |
+| `over`   | yes      | What is covered. `sha256` means the signature is over this `idr_ref`'s own `sha256` value |
+| `sigs`   | yes      | Limb name to lowercase-hex signature. Every limb named by `scheme` MUST be present |
+| `keys`   | yes      | Limb name to key fingerprint: the first 8 lowercase hex characters of `sha256` over the raw public key |
+
+**Verification is a fail-closed AND.** A multi-limb `scheme` verifies only when
+EVERY limb verifies against a public key whose fingerprint matches `keys`. A
+missing limb, a fingerprint mismatch, or malformed key material makes the record
+BROKEN — never "partially verified". A `sig` whose `scheme` the verifier does not
+implement is DEGRADED, which is distinct from verified and is never upgraded to it.
+
+**What an unsigned receipt proves, and what it does not.** `sha256` alone gives
+INTEGRITY: anyone may recompute it and detect tampering. It does not give
+AUTHENTICITY: anyone may equally compute a valid hash over a fabricated envelope
+and event stream, and `model_versions` is asserted by the emitting runtime with
+nothing behind it. So a receipt without `sig` establishes that a stream is
+internally consistent, never that a particular party produced it.
+
+`hmac-sha256` is named explicitly because it is the tempting mistake. It
+authenticates to whoever holds the shared secret, which means a peer able to
+verify your records is equally able to forge them. That is a trust circle, not a
+federation. For a third party to verify without trusting the signer, the scheme
+must be asymmetric.
+
 
 **Two emission patterns** (runtime chooses):
 
@@ -151,7 +181,11 @@ opt-in via `flags.audit=true` or explicit `cmd: "idr.emit"`.
 non-deterministic `sha256` for the same envelope + event sequence, (b) the `idr`
 event arrives before `completed`/`error` (it must be the terminator), or (c) a
 single dispatch emits both an `idr` event AND an `idr_ref` field on the
-`completed`/`error` event.
+`completed`/`error` event. For `sig` specifically, the design is wrong if
+(d) a multi-limb `scheme` ever reports verified while fewer than all limbs verify,
+(e) an unrecognised `scheme` reports anything other than DEGRADED, or (f) adding
+`sig` changes the `sha256` of the record carrying it — the signature covers the
+hash, so it must never be an input to it.
 <!-- happi:label=idr:end -->
 
 ---
