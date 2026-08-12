@@ -87,8 +87,69 @@ values. Composition is envelope trees.
 | `args`  |     | array  | Positional arguments |
 | `flags` |     | object | Named arguments |
 | `auth`  |     | object | Credentials — scrubbed from logs |
+| `from`  |     | object | Sender identity. Self-certifying only — see **Addressing** |
+| `to`    |     | object | Intended addressee. Routing, never authority — see **Addressing** |
 
 Forward-compatible: unknown fields are forwarded unchanged.
+
+### Addressing — `from` and `to`
+
+Both fields are optional and additive: an envelope without them dispatches exactly
+as before. They exist so one runtime can call another and the receiver can establish
+*who asked*, which a content hash alone can never do.
+
+`from` shape:
+
+| Field | Required | Notes |
+|-------|----------|-------|
+| `id`  | yes      | A **self-certifying** identifier — `did:key:z6Mk…`, whose value IS a multibase encoding of the public key |
+| `key` | no       | Key fingerprint. When present it MUST agree with the key `id` encodes |
+
+`to` shape:
+
+| Field | Required | Notes |
+|-------|----------|-------|
+| `id`  | yes      | The addressee's self-certifying identifier, or `"*"` for broadcast |
+| `via` | no       | Transport hint (a URL, a queue, an inbox). A hint only — never authority |
+
+**Four rules, and the fourth is the load-bearing one.**
+
+1. **`from` without a covering `sig` is UNAUTHENTICATED.** A runtime MAY route on it;
+   it MUST NOT treat it as having established identity. Routing on an unverified hint
+   is ordinary; trusting one is the whole failure this section exists to prevent.
+
+2. **Where `sig` is present, the key behind `from.id` MUST be among the signing keys.**
+   A mismatch REJECTS the envelope. There is no partial trust and no "signed, but by
+   someone else" state.
+
+3. **`to` is routing, never authorisation.** Being addressed does not oblige a runtime
+   to act, and does not widen what the caller may do. Authority stays with the
+   capability surface, exactly where it was.
+
+4. **Only self-certifying identifiers are admissible in `from.id`.** A bare handle, an
+   email address, or a registry-issued name is NOT valid, because verifying it would
+   require trusting a party the protocol cannot check. With `did:key` there is nothing
+   to bind: the identifier and the verification material are the same object, so
+   claiming an identity requires holding its private key. A forged sender is therefore
+   not merely detectable — it is **inexpressible**.
+
+That last property is the design's entire point. Systems that instead issue a bearer
+credential and record a self-declared name have identity that is forgeable precisely
+where it matters: anyone holding the secret becomes the principal, and the declared
+attributes behind it were never checked at all.
+
+**Backward-compat**: both fields are optional. A runtime that ignores them parses
+every existing envelope unchanged, and one that emits them produces envelopes older
+runtimes still accept, because unknown fields are forwarded unchanged.
+
+**Falsification**: this design is wrong if (a) implementers routinely send `from`
+without `sig` and consumers trust it anyway — the optionality would then defeat the
+guarantee and `from` should require `sig`; (b) `did:key` proves heavy enough that
+implementations invent a registry-backed identifier instead, making rule 4 too strict
+to survive contact; or (c) a real addressing need appears that self-certifying
+identifiers cannot serve — addressing a *role* rather than a *key* is the likeliest
+such case, and would need a layer above this one rather than a loosening of it.
+
 
 ---
 
