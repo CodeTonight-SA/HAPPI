@@ -94,8 +94,9 @@ Known gaps, stated plainly:
 
 ## Licence
 
-AGPL-3.0-only. If you run a modified version as a network service, that counts as
-distribution — users of that service must be offered the modified source.
-Commercial licences are available via the contact given in the specification.
+Apache-2.0. See [LICENSE](LICENSE). Anyone may implement, modify, extend or
+embed this specification and its embedded reference runtime in any product,
+open or closed source. The licence includes an express patent grant. Earlier
+publications of this specification were released under AGPL-3.0-only.
 
 Copyright (C) 2024-2026 Lourens Cornelius Scheepers / CodeTonight (Pty) Ltd
