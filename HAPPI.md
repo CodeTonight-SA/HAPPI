@@ -512,11 +512,11 @@ a valid `completed` event, the file has failed its own first test.
 <!-- happi:label=licence -->
 ## Licence
 
-This specification and its embedded runtime are free software, licensed under
-the GNU Affero General Public License, version 3 only (AGPL-3.0-only). If you
-run a modified version as a network service, that counts as distribution — the
-users of that service must be offered the modified source. Commercial licences
-are available via licensing@codetonight.co.za.
+This specification and its embedded runtime are licensed under the Apache
+License, version 2.0 (Apache-2.0). Anyone may implement, modify, extend or
+embed them in any product, open or closed source. The licence includes an
+express patent grant. Earlier publications of this specification were released
+under AGPL-3.0-only.
 
 Copyright (C) 2024-2026 Lourens Cornelius Scheepers / CodeTonight (Pty) Ltd
 
